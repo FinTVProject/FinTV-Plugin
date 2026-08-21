@@ -1,4 +1,5 @@
 using MediaBrowser.Common.Api;
+using MediaBrowser.Model.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,26 +10,42 @@ namespace Jellyfin.Plugin.FinTV.Api;
 [Authorize(Policy = Policies.RequiresElevation)]
 public class BridgeController : ControllerBase
 {
-    private readonly Services.CatalogSyncTask _catalogSync;
-    private readonly Services.BlackframeChapterTask _blackframe;
+    private readonly ITaskManager _taskManager;
+    private readonly Services.FinTvServerClient _client;
 
-    public BridgeController(Services.CatalogSyncTask catalogSync, Services.BlackframeChapterTask blackframe)
+    public BridgeController(ITaskManager taskManager, Services.FinTvServerClient client)
     {
-        _catalogSync = catalogSync;
-        _blackframe = blackframe;
+        _taskManager = taskManager;
+        _client = client;
+    }
+
+    [HttpPost("test-connection")]
+    public async Task<ActionResult<Services.ConnectionTestResult>> TestConnection(
+        [FromBody] ConnectionTestRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _client.TestConnectionAsync(request?.ServerUrl, request?.ApiKey, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost("sync")]
-    public async Task<IActionResult> SyncNow(CancellationToken cancellationToken)
+    public IActionResult SyncNow()
     {
-        await _catalogSync.ExecuteAsync(new Progress<double>(), cancellationToken);
+        _taskManager.CancelIfRunningAndQueue<Services.CatalogSyncTask>();
         return Accepted();
     }
 
     [HttpPost("blackframe")]
-    public async Task<IActionResult> Blackframe(CancellationToken cancellationToken)
+    public IActionResult Blackframe()
     {
-        await _blackframe.ExecuteAsync(new Progress<double>(), cancellationToken);
+        _taskManager.CancelIfRunningAndQueue<Services.BlackframeChapterTask>();
         return Accepted();
     }
+}
+
+public sealed class ConnectionTestRequest
+{
+    public string? ServerUrl { get; set; }
+
+    public string? ApiKey { get; set; }
 }

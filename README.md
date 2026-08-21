@@ -19,6 +19,7 @@ Dashboard → Plugins → FinTV:
 
 - FinTV Server URL (example `http://FinTV-Server:8097`)
 - API key (same as `FINTV_API_KEY` on the server)
+- **Test connection** — checks that Jellyfin can reach FinTV Server with that URL and key
 - Auto-register Live TV
 - Write blackframe chapters onto Jellyfin items
 

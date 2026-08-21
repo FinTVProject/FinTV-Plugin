@@ -54,21 +54,40 @@ public sealed class CatalogSyncTask : IScheduledTask
             IncludeItemTypes = kinds
         });
 
-        var items = new List<object>();
+        const int batchSize = 100;
+        var batch = new List<object>(batchSize);
         var total = Math.Max(1, result.Items.Count);
         var index = 0;
+        var sentAny = false;
         foreach (var item in result.Items)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            items.Add(Map(item));
+            batch.Add(Map(item));
             index++;
+            if (batch.Count >= batchSize)
+            {
+                await _client.PostJsonAsync(
+                    "/api/plugin/catalog",
+                    new { replaceAll = !sentAny, items = batch },
+                    cancellationToken);
+                sentAny = true;
+                batch.Clear();
+            }
+
             if (index % 250 == 0)
             {
                 progress.Report(index * 90d / total);
             }
         }
 
-        await _client.PostJsonAsync("/api/plugin/catalog", new { replaceAll = true, items }, cancellationToken);
+        if (batch.Count > 0 || !sentAny)
+        {
+            await _client.PostJsonAsync(
+                "/api/plugin/catalog",
+                new { replaceAll = !sentAny, items = batch },
+                cancellationToken);
+        }
+
         progress.Report(100);
     }
 

@@ -8,10 +8,15 @@
             <div class="inputContainer">
                 <label class="inputLabel" for="fintv-server-url">FinTV Server URL</label>
                 <input id="fintv-server-url" type="text" is="emby-input" class="emby-input" />
+                <div class="fieldDescription">Must resolve from the Jellyfin container, e.g. <code>http://fintv-server:8097</code> on the same Docker network, or a LAN IP like <code>http://192.168.1.2:8097</code>.</div>
             </div>
             <div class="inputContainer">
                 <label class="inputLabel" for="fintv-api-key">API key</label>
                 <input id="fintv-api-key" type="password" is="emby-input" class="emby-input" />
+            </div>
+            <div class="inputContainer">
+                <button is="emby-button" type="button" id="fintv-test-connection" class="raised block">Test connection</button>
+                <p id="fintv-test-result" class="fieldDescription" aria-live="polite"></p>
             </div>
             <label class="checkboxContainer">
                 <input id="fintv-auto-livetv" type="checkbox" is="emby-checkbox" />
@@ -53,13 +58,44 @@
                 await ApiClient.updatePluginConfiguration('f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b', cfg);
                 Dashboard.processPluginConfigurationUpdateResult();
             });
+            page.querySelector('#fintv-test-connection').addEventListener('click', async function () {
+                const button = page.querySelector('#fintv-test-connection');
+                const resultEl = page.querySelector('#fintv-test-result');
+                button.disabled = true;
+                resultEl.textContent = 'Testing…';
+                try {
+                    const result = await ApiClient.ajax({
+                        url: ApiClient.getUrl('FinTV/api/bridge/test-connection'),
+                        type: 'POST',
+                        data: JSON.stringify({
+                            serverUrl: page.querySelector('#fintv-server-url').value,
+                            apiKey: page.querySelector('#fintv-api-key').value
+                        }),
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    });
+                    resultEl.textContent = result.message || result.Message || (result.ok || result.Ok ? 'Connected to FinTV Server.' : 'Connection failed.');
+                } catch (ex) {
+                    resultEl.textContent = 'Could not run the connection test.';
+                } finally {
+                    button.disabled = false;
+                }
+            });
             page.querySelector('#fintv-sync-now').addEventListener('click', async function () {
-                await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/sync'), type: 'POST' });
-                Dashboard.alert('Catalog sync started.');
+                try {
+                    await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/sync'), type: 'POST' });
+                    Dashboard.alert('Catalog sync started. Watch Dashboard → Scheduled Tasks.');
+                } catch (ex) {
+                    Dashboard.alert('Could not start catalog sync.');
+                }
             });
             page.querySelector('#fintv-blackframe-now').addEventListener('click', async function () {
-                await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/blackframe'), type: 'POST' });
-                Dashboard.alert('Blackframe scan started.');
+                try {
+                    await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/blackframe'), type: 'POST' });
+                    Dashboard.alert('Blackframe scan started. Watch Dashboard → Scheduled Tasks.');
+                } catch (ex) {
+                    Dashboard.alert('Could not start blackframe scan.');
+                }
             });
         })();
     </script>
