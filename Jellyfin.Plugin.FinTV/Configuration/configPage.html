@@ -26,6 +26,8 @@
                 <input id="fintv-commercial-tag" type="text" is="emby-input" class="emby-input" />
             </div>
             <button is="emby-button" type="submit" class="raised button-submit block">Save</button>
+            <button is="emby-button" type="button" id="fintv-sync-now" class="raised block">Sync catalog now</button>
+            <button is="emby-button" type="button" id="fintv-blackframe-now" class="raised block">Run blackframe scan</button>
         </form>
         <p class="fieldDescription">Open the FinTV Server Web UI (port 8097) to manage channels. Catalog metadata syncs on a schedule or from Dashboard → Scheduled Tasks → FinTV Catalog Sync.</p>
     </div>
@@ -50,6 +52,14 @@
                 cfg.CommercialLibraryTag = page.querySelector('#fintv-commercial-tag').value;
                 await ApiClient.updatePluginConfiguration('f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b', cfg);
                 Dashboard.processPluginConfigurationUpdateResult();
+            });
+            page.querySelector('#fintv-sync-now').addEventListener('click', async function () {
+                await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/sync'), type: 'POST' });
+                Dashboard.alert('Catalog sync started.');
+            });
+            page.querySelector('#fintv-blackframe-now').addEventListener('click', async function () {
+                await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/blackframe'), type: 'POST' });
+                Dashboard.alert('Blackframe scan started.');
             });
         })();
     </script>
