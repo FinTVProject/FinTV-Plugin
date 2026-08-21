@@ -39,7 +39,7 @@ public sealed class CatalogSyncTask : IScheduledTask
 
     public string Key => "FinTVCatalogSync";
 
-    public string Description => "Pushes the Jellyfin libraries selected on FinTV Server, not the entire Jellyfin library.";
+    public string Description => "Pushes Jellyfin library names to FinTV Server, then the libraries selected there.";
 
     public string Category => "FinTV";
 
@@ -54,8 +54,12 @@ public sealed class CatalogSyncTask : IScheduledTask
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
+        var libraries = ListPushableLibraries();
+        await PostLibraryListAsync(libraries, cancellationToken);
+        progress.Report(5);
+
         var filter = await GetLibraryFilterAsync(cancellationToken);
-        var libraryIds = ResolveLibraryIds(filter);
+        var libraryIds = ResolveLibraryIds(filter, libraries);
         if (libraryIds.Count == 0)
         {
             _logger.LogWarning("FinTV catalog sync found no matching libraries. Select TV/movie/music libraries on FinTV Server.");
@@ -99,7 +103,7 @@ public sealed class CatalogSyncTask : IScheduledTask
                 continue;
             }
 
-            batch.Add(Map(item));
+            batch.Add(Map(item, libraries));
             index++;
             if (batch.Count >= batchSize)
             {
@@ -113,7 +117,7 @@ public sealed class CatalogSyncTask : IScheduledTask
 
             if (index % 250 == 0)
             {
-                progress.Report(index * 90d / total);
+                progress.Report(5 + (index * 90d / total));
             }
         }
 
@@ -136,24 +140,36 @@ public sealed class CatalogSyncTask : IScheduledTask
 
     public async Task<LibraryPushResult> PushLibrariesAsync(CancellationToken cancellationToken)
     {
-        var items = ListPushableLibraries()
-            .Select(entry => MapLibrary(entry.Folder, entry.Id))
-            .ToList();
-        if (items.Count == 0)
+        var libraries = ListPushableLibraries();
+        if (libraries.Count == 0)
         {
-            return new LibraryPushResult(false, "No TV, movie, or music libraries found.");
+            return new LibraryPushResult(false, "No TV, movie, music, or music video libraries found.");
         }
 
-        await _client.PostJsonAsync(
-            "/api/plugin/catalog",
-            new { replaceAll = false, items },
-            cancellationToken);
-
-        _logger.LogInformation("Sent {Count} Jellyfin libraries to FinTV Server.", items.Count);
-        return new LibraryPushResult(true, $"Sent {items.Count} libraries to FinTV Server.");
+        await PostLibraryListAsync(libraries, cancellationToken);
+        _logger.LogInformation("Sent {Count} Jellyfin libraries to FinTV Server.", libraries.Count);
+        return new LibraryPushResult(true, $"Sent {libraries.Count} libraries to FinTV Server.");
     }
 
-    private object Map(BaseItem item)
+    private Task PostLibraryListAsync(
+        IReadOnlyList<(VirtualFolderInfo Folder, Guid Id)> libraries,
+        CancellationToken cancellationToken)
+    {
+        return _client.PostJsonAsync(
+            "/api/plugin/libraries",
+            new
+            {
+                libraries = libraries.Select(entry => new
+                {
+                    id = entry.Id,
+                    name = entry.Folder.Name,
+                    collectionType = entry.Folder.CollectionType?.ToString()
+                })
+            },
+            cancellationToken);
+    }
+
+    private object Map(BaseItem item, IReadOnlyList<(VirtualFolderInfo Folder, Guid Id)> libraries)
     {
         var chapters = _chapters.GetChapters(item.Id)
             .Select(c => new { startPositionTicks = c.StartPositionTicks, name = c.Name })
@@ -170,11 +186,9 @@ public sealed class CatalogSyncTask : IScheduledTask
             seriesName = episode.SeriesName;
         }
 
-        string? collectionType = null;
-        if (item is CollectionFolder folder)
-        {
-            collectionType = folder.CollectionType?.ToString();
-        }
+        var library = ResolveItemLibrary(item, libraries);
+        var collectionType = library?.CollectionType
+            ?? (item is CollectionFolder folder ? folder.CollectionType?.ToString() : null);
 
         return new
         {
@@ -193,8 +207,8 @@ public sealed class CatalogSyncTask : IScheduledTask
             runtimeTicks = item.RunTimeTicks,
             indexNumber,
             parentIndexNumber,
-            libraryId = item.GetTopParent()?.Id,
-            libraryName = item.GetTopParent()?.Name,
+            libraryId = library?.Id ?? item.GetTopParent()?.Id,
+            libraryName = library?.Name ?? item.GetTopParent()?.Name,
             collectionType,
             primaryImagePath = item.HasImage(ImageType.Primary) ? item.GetImagePath(ImageType.Primary) : null,
             genres = item.Genres ?? Array.Empty<string>(),
@@ -203,6 +217,60 @@ public sealed class CatalogSyncTask : IScheduledTask
             collectionNames = Array.Empty<string>(),
             chapters
         };
+    }
+
+    private static (Guid Id, string Name, string? CollectionType)? ResolveItemLibrary(
+        BaseItem item,
+        IReadOnlyList<(VirtualFolderInfo Folder, Guid Id)> libraries)
+    {
+        var folder = FindCollectionFolder(item);
+        if (folder is not null)
+        {
+            var byId = libraries.FirstOrDefault(entry => entry.Id == folder.Id);
+            if (byId.Id != Guid.Empty)
+            {
+                return (byId.Id, byId.Folder.Name, byId.Folder.CollectionType?.ToString());
+            }
+
+            var byName = libraries.FirstOrDefault(entry =>
+                entry.Folder.Name.Equals(folder.Name, StringComparison.OrdinalIgnoreCase));
+            if (byName.Id != Guid.Empty)
+            {
+                return (byName.Id, byName.Folder.Name, byName.Folder.CollectionType?.ToString());
+            }
+
+            return (folder.Id, folder.Name, folder.CollectionType?.ToString());
+        }
+
+        var top = item.GetTopParent();
+        if (top is null)
+        {
+            return null;
+        }
+
+        var match = libraries.FirstOrDefault(entry => entry.Id == top.Id);
+        if (match.Id != Guid.Empty)
+        {
+            return (match.Id, match.Folder.Name, match.Folder.CollectionType?.ToString());
+        }
+
+        return null;
+    }
+
+    private static CollectionFolder? FindCollectionFolder(BaseItem item)
+    {
+        BaseItem? current = item;
+        for (var i = 0; i < 16 && current is not null; i++)
+        {
+            if (current is CollectionFolder folder)
+            {
+                return folder;
+            }
+
+            current = current.GetParent();
+        }
+
+        return item.GetTopParent() as CollectionFolder;
     }
 
     private static int MapKind(BaseItem item)
@@ -230,33 +298,6 @@ public sealed class CatalogSyncTask : IScheduledTask
         }
     }
 
-    private object MapLibrary(VirtualFolderInfo folder, Guid id)
-    {
-        var item = _libraryManager.GetItemById(id);
-        var path = (folder.Locations ?? []).FirstOrDefault() ?? item?.Path;
-        return new
-        {
-            id,
-            name = folder.Name,
-            sortName = item?.SortName ?? folder.Name,
-            overview = item?.Overview,
-            kind = 6,
-            path,
-            parentId = (Guid?)null,
-            libraryId = id,
-            libraryName = folder.Name,
-            collectionType = folder.CollectionType?.ToString(),
-            primaryImagePath = item is not null && item.HasImage(ImageType.Primary)
-                ? item.GetImagePath(ImageType.Primary)
-                : null,
-            genres = Array.Empty<string>(),
-            tags = Array.Empty<string>(),
-            studios = Array.Empty<string>(),
-            collectionNames = Array.Empty<string>(),
-            chapters = Array.Empty<object>()
-        };
-    }
-
     private List<(VirtualFolderInfo Folder, Guid Id)> ListPushableLibraries()
     {
         return _libraryManager.GetVirtualFolders()
@@ -270,15 +311,10 @@ public sealed class CatalogSyncTask : IScheduledTask
             .ToList();
     }
 
-    private HashSet<Guid> ResolveLibraryIds(LibrarySyncFilter? filter)
+    private static HashSet<Guid> ResolveLibraryIds(
+        LibrarySyncFilter? filter,
+        IReadOnlyList<(VirtualFolderInfo Folder, Guid Id)> folders)
     {
-        var folders = _libraryManager.GetVirtualFolders()
-            .Select(folder => (
-                Folder: folder,
-                Id: Guid.TryParse(folder.ItemId, out var id) ? id : Guid.Empty))
-            .Where(entry => entry.Id != Guid.Empty)
-            .ToList();
-
         var ids = new HashSet<Guid>();
         ids.UnionWith(Pick(filter?.TvLibraryIds, folders, CollectionType.tvshows));
         ids.UnionWith(Pick(filter?.MovieLibraryIds, folders, CollectionType.movies));
