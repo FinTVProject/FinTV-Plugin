@@ -1,6 +1,7 @@
 using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Chapters;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
@@ -69,6 +70,15 @@ public sealed class CatalogSyncTask : IScheduledTask
 
         _logger.LogInformation("FinTV catalog sync using {Count} libraries selected by FinTV Server.", libraryIds.Count);
 
+        try
+        {
+            await _client.PostJsonAsync("/api/plugin/catalog/sync/begin", new { }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "FinTV catalog sync could not start missing-item bookkeeping; items will still be pushed.");
+        }
+
         var items = new List<BaseItem>();
         foreach (var libraryId in libraryIds)
         {
@@ -130,6 +140,14 @@ public sealed class CatalogSyncTask : IScheduledTask
         }
 
         progress.Report(100);
+        try
+        {
+            await _client.PostJsonAsync("/api/plugin/catalog/sync/complete", new { }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "FinTV catalog sync finished pushing items but could not complete missing-item bookkeeping.");
+        }
     }
 
     public async Task PushChaptersAsync(Guid itemId, IReadOnlyList<(TimeSpan Start, string Name)> chapters, CancellationToken cancellationToken)
@@ -244,6 +262,9 @@ public sealed class CatalogSyncTask : IScheduledTask
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase)
             ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        var videoStream = item.GetMediaStreams()?.FirstOrDefault(stream => stream.Type == MediaStreamType.Video);
+        var audioStream = item.GetMediaStreams()?.FirstOrDefault(stream => stream.Type == MediaStreamType.Audio);
+
         return new
         {
             id = item.Id,
@@ -275,6 +296,7 @@ public sealed class CatalogSyncTask : IScheduledTask
             collectionType,
             mediaType = item.MediaType.ToString(),
             album = item.Album,
+            albumArtist = albumArtists.Length > 0 ? string.Join(", ", albumArtists) : null,
             primaryImagePath = item.HasImage(ImageType.Primary) ? item.GetImagePath(ImageType.Primary) : null,
             genres = item.Genres ?? Array.Empty<string>(),
             tags = item.Tags ?? Array.Empty<string>(),
@@ -285,6 +307,12 @@ public sealed class CatalogSyncTask : IScheduledTask
             people,
             stars,
             providerIds,
+            format = item.Container,
+            container = item.Container,
+            videoCodec = videoStream?.Codec,
+            audioCodec = audioStream?.Codec,
+            width = videoStream?.Width,
+            height = videoStream?.Height,
             chapters
         };
     }
