@@ -71,3 +71,27 @@ jobs:
         with:
           tag_name: ${{ steps.release.outputs.tag }}
           files: ${{ steps.build.outputs.zipfile }}
+
+      - name: Update plugin repository manifest
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          ZIPFILE: ${{ steps.build.outputs.zipfile }}
+        run: |
+          zipname="$(basename "$ZIPFILE")"
+          plugin_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${zipname}"
+
+          git fetch origin master
+          git checkout -B master origin/master
+
+          if [ ! -f manifest.json ]; then
+            jprm repo init ./manifest.json
+          fi
+
+          jprm --verbosity=debug repo add --plugin-url "$plugin_url" ./manifest.json "$ZIPFILE"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git diff --cached --quiet && echo "No manifest changes" && exit 0
+          git commit -m "Add ${TAG} to the Jellyfin plugin repository manifest."
+          git push origin master
