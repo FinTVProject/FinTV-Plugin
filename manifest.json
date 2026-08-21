@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/FlowMeadow01/ChannelFlow-Jellyfin/master/logo.png",
         "versions": [
             {
+                "version": "0.0.9.0",
+                "changelog": "- Rename the plugin and GitHub repository to ChannelFlow-Jellyfin\n- Walk each library's physical folders so catalog sync sends movies/shows, not just the library roots\n- Keep Test connection / Live TV / catalog buttons working if plugin DI fails to register",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/FlowMeadow01/ChannelFlow-Jellyfin/releases/download/v0.0.9.0/channelflow-jellyfin_0.0.9.0.zip",
+                "checksum": "5ee2200972fb3b14d5edbd7ea3759c0e",
+                "timestamp": "2026-08-21T20:21:11Z"
+            },
+            {
                 "version": "0.0.8.0",
                 "changelog": "- Walk each library's physical folders so catalog sync sends movies/shows, not just the 7 library roots\n- Keep Test connection / Live TV / catalog buttons working if plugin DI fails to register\n- Stop queuing catalog sync twice, and wait until Jellyfin has finished starting before Live TV save",
                 "targetAbi": "12.0.0.0",
