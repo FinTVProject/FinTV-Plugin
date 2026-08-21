@@ -1,19 +1,19 @@
 using System.Globalization;
-using Jellyfin.Plugin.FinTV.Configuration;
+using Jellyfin.Plugin.ChannelFlow.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Model.LiveTv;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.FinTV.Services;
+namespace Jellyfin.Plugin.ChannelFlow.Services;
 
 public sealed class LiveTvRegistrar
 {
-    public const string TunerFriendlyName = "FinTV";
+    public const string TunerFriendlyName = "ChannelFlow";
     public const string M3uType = "m3u";
     public const string XmlTvType = "xmltv";
 
-    private readonly FinTvServerClient _client;
+    private readonly ChannelFlowServerClient _client;
     private readonly ITunerHostManager _tunerHosts;
     private readonly IListingsManager _listings;
     private readonly IConfigurationManager _config;
@@ -21,7 +21,7 @@ public sealed class LiveTvRegistrar
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public LiveTvRegistrar(
-        FinTvServerClient client,
+        ChannelFlowServerClient client,
         ITunerHostManager tunerHosts,
         IListingsManager listings,
         IConfigurationManager config,
@@ -56,7 +56,7 @@ public sealed class LiveTvRegistrar
         var config = plugin?.Configuration;
         if (config is null)
         {
-            return new LiveTvRegistrationResult(false, "FinTV plugin is not loaded.");
+            return new LiveTvRegistrationResult(false, "ChannelFlow plugin is not loaded.");
         }
 
         if (!config.AutoRegisterLiveTv)
@@ -66,20 +66,20 @@ public sealed class LiveTvRegistrar
 
         if (string.IsNullOrWhiteSpace(config.ServerUrl))
         {
-            return new LiveTvRegistrationResult(false, "Set a FinTV Server URL before registering Live TV.");
+            return new LiveTvRegistrationResult(false, "Set a ChannelFlow Server URL before registering Live TV.");
         }
 
         var urls = await _client.GetJsonAsync<LiveTvUrls>("/api/plugin/live-tv-urls", cancellationToken).ConfigureAwait(false);
         if (urls is null || (string.IsNullOrWhiteSpace(urls.M3u) && string.IsNullOrWhiteSpace(urls.Epg)))
         {
-            return new LiveTvRegistrationResult(false, "FinTV Server did not return M3U/XMLTV URLs.");
+            return new LiveTvRegistrationResult(false, "ChannelFlow Server did not return M3U/XMLTV URLs.");
         }
 
         var m3uUrl = EnsureApiKey(RewriteToServer(urls.M3u, config.ServerUrl), config.ApiKey);
         var epgUrl = EnsureApiKey(RewriteToServer(urls.Epg, config.ServerUrl), config.ApiKey);
         if (string.IsNullOrWhiteSpace(m3uUrl) || string.IsNullOrWhiteSpace(epgUrl))
         {
-            return new LiveTvRegistrationResult(false, "FinTV Server returned an empty M3U or XMLTV URL.");
+            return new LiveTvRegistrationResult(false, "ChannelFlow Server returned an empty M3U or XMLTV URL.");
         }
 
         var liveTv = (LiveTvOptions)_config.GetConfiguration("livetv");
@@ -98,7 +98,7 @@ public sealed class LiveTvRegistrar
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "FinTV M3U tuner validation failed; saving the tuner URL without validation");
+            _logger.LogWarning(ex, "ChannelFlow M3U tuner validation failed; saving the tuner URL without validation");
             tuner = PersistTuner(tuner);
         }
 
@@ -114,18 +114,18 @@ public sealed class LiveTvRegistrar
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "FinTV XMLTV provider save failed; writing the guide URL into Live TV config");
+            _logger.LogWarning(ex, "ChannelFlow XMLTV provider save failed; writing the guide URL into Live TV config");
             listings = PersistListings(listings);
         }
 
         RememberIds(plugin!, config, tuner.Id, listings.Id);
 
         _logger.LogInformation(
-            "Registered FinTV Live TV: M3U {M3u} XMLTV {Epg}",
+            "Registered ChannelFlow Live TV: M3U {M3u} XMLTV {Epg}",
             RedactQuery(m3uUrl),
             RedactQuery(epgUrl));
 
-        return new LiveTvRegistrationResult(true, "Registered FinTV M3U tuner and XMLTV guide in Dashboard → Live TV.");
+        return new LiveTvRegistrationResult(true, "Registered ChannelFlow M3U tuner and XMLTV guide in Dashboard → Live TV.");
     }
 
     private TunerHostInfo PersistTuner(TunerHostInfo info)
@@ -183,6 +183,7 @@ public sealed class LiveTvRegistrar
 
         return hosts.FirstOrDefault(h =>
             string.Equals(h.FriendlyName, TunerFriendlyName, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(h.FriendlyName, "FinTV", StringComparison.OrdinalIgnoreCase)
             || (h.Url is not null && h.Url.Contains("/iptv/channels.m3u", StringComparison.OrdinalIgnoreCase)));
     }
 

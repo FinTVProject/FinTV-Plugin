@@ -3,15 +3,15 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-namespace Jellyfin.Plugin.FinTV.Services;
+namespace Jellyfin.Plugin.ChannelFlow.Services;
 
-public sealed class FinTvServerClient
+public sealed class ChannelFlowServerClient
 {
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(8);
 
     private readonly IHttpClientFactory _http;
 
-    public FinTvServerClient(IHttpClientFactory http)
+    public ChannelFlowServerClient(IHttpClientFactory http)
     {
         _http = http;
     }
@@ -27,7 +27,7 @@ public sealed class FinTvServerClient
 
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            return new ConnectionTestResult(false, "Enter a FinTV Server URL.");
+            return new ConnectionTestResult(false, "Enter a ChannelFlow Server URL.");
         }
 
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
@@ -51,21 +51,21 @@ public sealed class FinTvServerClient
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
-                return new ConnectionTestResult(false, "Reached FinTV Server, but the API key was rejected.");
+                return new ConnectionTestResult(false, "Reached ChannelFlow Server, but the API key was rejected.");
             }
 
             if (!response.IsSuccessStatusCode)
             {
                 return new ConnectionTestResult(
                     false,
-                    $"FinTV Server responded with {(int)response.StatusCode} {response.ReasonPhrase}.");
+                    $"ChannelFlow Server responded with {(int)response.StatusCode} {response.ReasonPhrase}.");
             }
 
-            return new ConnectionTestResult(true, "Connected to FinTV Server.");
+            return new ConnectionTestResult(true, "Connected to ChannelFlow Server.");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return new ConnectionTestResult(false, "Timed out waiting for FinTV Server.");
+            return new ConnectionTestResult(false, "Timed out waiting for ChannelFlow Server.");
         }
         catch (HttpRequestException ex)
         {
@@ -74,7 +74,7 @@ public sealed class FinTvServerClient
             {
                 return new ConnectionTestResult(
                     false,
-                    $"Could not reach FinTV Server ({detail}). Use a hostname or LAN IP this Jellyfin container can resolve, on the same Docker network.");
+                    $"Could not reach ChannelFlow Server ({detail}). Use a hostname or LAN IP this Jellyfin container can resolve, on the same Docker network.");
             }
 
             return new ConnectionTestResult(false, detail);
@@ -122,7 +122,7 @@ public sealed class FinTvServerClient
         }
 
         throw new HttpRequestException(
-            $"FinTV Server {(int)response.StatusCode} {response.ReasonPhrase} for {path}: {body}");
+            $"ChannelFlow Server {(int)response.StatusCode} {response.ReasonPhrase} for {path}: {body}");
     }
 
     private Task<HttpResponseMessage> SendAsync(
@@ -149,7 +149,7 @@ public sealed class FinTvServerClient
         string baseUrl,
         string? apiKey)
     {
-        var client = _http.CreateClient("fintv");
+        var client = _http.CreateClient("channelflow");
         using var request = new HttpRequestMessage(method, baseUrl.TrimEnd('/') + path);
         if (!string.IsNullOrWhiteSpace(apiKey))
         {

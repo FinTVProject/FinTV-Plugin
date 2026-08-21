@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Jellyfin.Plugin.FinTV</RootNamespace>
-    <AssemblyName>Jellyfin.Plugin.FinTV</AssemblyName>
+    <RootNamespace>Jellyfin.Plugin.ChannelFlow</RootNamespace>
+    <AssemblyName>Jellyfin.Plugin.ChannelFlow</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="..\logo.png" Link="logo.png" LogicalName="Jellyfin.Plugin.FinTV.logo.png" />
+    <EmbeddedResource Include="..\logo.png" Link="logo.png" LogicalName="Jellyfin.Plugin.ChannelFlow.logo.png" />
     <EmbeddedResource Include="Configuration\configPage.html" />
   </ItemGroup>
 

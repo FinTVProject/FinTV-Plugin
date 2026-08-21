@@ -29,7 +29,7 @@ jobs:
           python-version: '3.x'
 
       - name: Restore NuGet packages
-        run: dotnet restore Jellyfin.Plugin.FinTV/Jellyfin.Plugin.FinTV.csproj
+        run: dotnet restore Jellyfin.Plugin.ChannelFlow/Jellyfin.Plugin.ChannelFlow.csproj
 
       - name: Build Jellyfin Plugin
         uses: oddstr13/jellyfin-plugin-repository-manager@9497a0a499416cc572ed2e07a391d9f943a37b4d

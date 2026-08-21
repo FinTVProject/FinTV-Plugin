@@ -8,15 +8,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.FinTV.Api;
+namespace Jellyfin.Plugin.ChannelFlow.Api;
 
 [ApiController]
-[Route("FinTV/api/bridge")]
+[Route("ChannelFlow/api/bridge")]
 [Authorize(Policy = Policies.RequiresElevation)]
 public class BridgeController : ControllerBase
 {
     private readonly ITaskManager _taskManager;
-    private readonly Services.FinTvServerClient _client;
+    private readonly Services.ChannelFlowServerClient _client;
     private readonly Services.LiveTvRegistrar _liveTv;
     private readonly Services.CatalogSyncTask _catalogSync;
 
@@ -31,7 +31,7 @@ public class BridgeController : ControllerBase
         ILoggerFactory loggerFactory)
     {
         _taskManager = taskManager;
-        _client = new Services.FinTvServerClient(http);
+        _client = new Services.ChannelFlowServerClient(http);
         _liveTv = new Services.LiveTvRegistrar(
             _client,
             tunerHosts,
@@ -78,13 +78,13 @@ public class BridgeController : ControllerBase
     [HttpPost("sync")]
     public IActionResult SyncNow()
     {
-        return QueueTask("FinTVCatalogSync", "Catalog sync");
+        return QueueTask("ChannelFlowCatalogSync", "Catalog sync");
     }
 
     [HttpPost("blackframe")]
     public IActionResult Blackframe()
     {
-        return QueueTask("FinTVBlackframe", "Blackframe scan");
+        return QueueTask("ChannelFlowBlackframe", "Blackframe scan");
     }
 
     private IActionResult QueueTask(string key, string name)

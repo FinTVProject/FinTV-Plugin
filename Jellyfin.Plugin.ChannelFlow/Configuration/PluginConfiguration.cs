@@ -1,10 +1,10 @@
 using MediaBrowser.Model.Plugins;
 
-namespace Jellyfin.Plugin.FinTV.Configuration;
+namespace Jellyfin.Plugin.ChannelFlow.Configuration;
 
 public class PluginConfiguration : BasePluginConfiguration
 {
-    public string ServerUrl { get; set; } = "http://FinTV-Server:8097";
+    public string ServerUrl { get; set; } = "http://ChannelFlow-Server:8097";
 
     public string ApiKey { get; set; } = string.Empty;
 
@@ -16,7 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool WriteChaptersToJellyfin { get; set; } = true;
 
-    public string? CommercialLibraryTag { get; set; } = "fintv-commercial";
+    public string? CommercialLibraryTag { get; set; } = "channelflow-commercial";
 
     public BlackframeTaskState BlackframeTaskState { get; set; } = new();
 }

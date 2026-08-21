@@ -1,18 +1,18 @@
 [
     {
         "guid": "f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b",
-        "name": "FinTV",
-        "description": "Connects Jellyfin to FinTV Server. Syncs library metadata, paths, and chapters, registers M3U/XMLTV Live TV, and runs commercial blackframe detection.\n",
-        "overview": "Thin Jellyfin bridge for FinTV Server \u2014 catalog sync, Live TV registration, and blackframe chapters",
-        "owner": "binarygeek119",
+        "name": "ChannelFlow-Jellyfin",
+        "description": "Connects Jellyfin to ChannelFlow Server. Syncs library metadata, paths, and chapters, registers M3U/XMLTV Live TV, and runs commercial blackframe detection.\n",
+        "overview": "Thin Jellyfin bridge for ChannelFlow Server \u2014 catalog sync, Live TV registration, and blackframe chapters",
+        "owner": "FlowMeadow01",
         "category": "LiveTV",
-        "imageUrl": "https://raw.githubusercontent.com/FinTVProject/FinTV-Plugin/master/logo.png",
+        "imageUrl": "https://raw.githubusercontent.com/FlowMeadow01/ChannelFlow-Jellyfin/master/logo.png",
         "versions": [
             {
                 "version": "0.0.8.0",
                 "changelog": "- Walk each library's physical folders so catalog sync sends movies/shows, not just the 7 library roots\n- Keep Test connection / Live TV / catalog buttons working if plugin DI fails to register\n- Stop queuing catalog sync twice, and wait until Jellyfin has finished starting before Live TV save",
                 "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.8.0/fintv_0.0.8.0.zip",
+                "sourceUrl": "https://github.com/FlowMeadow01/ChannelFlow-Jellyfin/releases/download/v0.0.8.0/fintv_0.0.8.0.zip",
                 "checksum": "91d6bf90bd166533e24d68e3e184a8dc",
                 "timestamp": "2026-08-21T18:55:58Z"
             },
@@ -20,7 +20,7 @@
                 "version": "0.0.7.0",
                 "changelog": "- Keep Test connection / Live TV / catalog buttons working if plugin DI fails to register\n- Stop queuing catalog sync twice, and wait until Jellyfin has finished starting before Live TV save\n- Sync full catalog metadata: runtime, chapters, rating, plot, stars, Jellyfin path, and IDs",
                 "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.7.0/fintv_0.0.7.0.zip",
+                "sourceUrl": "https://github.com/FlowMeadow01/ChannelFlow-Jellyfin/releases/download/v0.0.7.0/fintv_0.0.7.0.zip",
                 "checksum": "9e2fd2b300b9b3be8e1e44daeee94cc3",
                 "timestamp": "2026-08-21T18:17:26Z"
             },
@@ -28,7 +28,7 @@
                 "version": "0.0.6.0",
                 "changelog": "- Sync full catalog metadata: runtime, chapters, rating, plot, stars, Jellyfin path, and IDs\n- Include TV seasons, home-video/news libraries, and album/artist fields\n- Send Jellyfin library names and types to FinTV Server for the library picker",
                 "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.6.0/fintv_0.0.6.0.zip",
+                "sourceUrl": "https://github.com/FlowMeadow01/ChannelFlow-Jellyfin/releases/download/v0.0.6.0/fintv_0.0.6.0.zip",
                 "checksum": "05167f223aa54d397fd72033cfa6dd31",
                 "timestamp": "2026-08-21T17:20:06Z"
             },
@@ -36,7 +36,7 @@
                 "version": "0.0.5.0",
                 "changelog": "- Register the FinTV M3U tuner and XMLTV guide in Dashboard \u2192 Live TV\n- Send Jellyfin libraries to FinTV Server for the Web UI picker\n- Sync only the libraries selected on FinTV Server\n- Stop catalog sync from deleting items that channels still reference",
                 "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.5.0/fintv_0.0.5.0.zip",
+                "sourceUrl": "https://github.com/FlowMeadow01/ChannelFlow-Jellyfin/releases/download/v0.0.5.0/fintv_0.0.5.0.zip",
                 "checksum": "fbd9fe4249cdb15c1465ce6ffb5438cb",
                 "timestamp": "2026-08-21T16:46:38Z"
             },
@@ -44,7 +44,7 @@
                 "version": "0.0.4.0",
                 "changelog": "- Test FinTV Server URL and API key from the plugin page\n- Queue catalog sync and blackframe scan as scheduled tasks\n- Upload catalog metadata in chunks so large libraries do not time out\n- Auto-register Live TV M3U and XMLTV\n- Keep blackframe commercial chapter detection in Jellyfin",
                 "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.4.0/fintv_0.0.4.0.zip",
+                "sourceUrl": "https://github.com/FlowMeadow01/ChannelFlow-Jellyfin/releases/download/v0.0.4.0/fintv_0.0.4.0.zip",
                 "checksum": "447b9954885e5aef1644893ebe24354d",
                 "timestamp": "2026-08-21T16:03:32Z"
             },
@@ -52,7 +52,7 @@
                 "version": "0.0.3.0",
                 "changelog": "- Split FinTV into FinTV Server plus a thin Jellyfin plugin\n- Sync library metadata, file paths, and chapters to FinTV Server\n- Auto-register Live TV M3U and XMLTV\n- Keep blackframe commercial chapter detection in Jellyfin",
                 "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.3.0/fintv_0.0.3.0.zip",
+                "sourceUrl": "https://github.com/FlowMeadow01/ChannelFlow-Jellyfin/releases/download/v0.0.3.0/fintv_0.0.3.0.zip",
                 "checksum": "5a37548c6219ebed41667f46cc2014b1",
                 "timestamp": "2026-08-21T12:37:47Z"
             }

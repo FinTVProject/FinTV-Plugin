@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using CliWrap;
-using Jellyfin.Plugin.FinTV.Configuration;
+using Jellyfin.Plugin.ChannelFlow.Configuration;
 using MediaBrowser.Controller.Chapters;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
@@ -10,7 +10,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.FinTV.Services;
+namespace Jellyfin.Plugin.ChannelFlow.Services;
 
 public partial class BlackframeChapterTask : IScheduledTask
 {
@@ -38,13 +38,13 @@ public partial class BlackframeChapterTask : IScheduledTask
             loggerFactory.CreateLogger<CatalogSyncTask>());
     }
 
-    public string Name => "FinTV Commercial Blackframe Detection";
+    public string Name => "ChannelFlow Commercial Blackframe Detection";
 
-    public string Key => "FinTVBlackframe";
+    public string Key => "ChannelFlowBlackframe";
 
-    public string Description => "Detect commercial segments using FFmpeg blackframe analysis and sync chapters to FinTV Server.";
+    public string Description => "Detect commercial segments using FFmpeg blackframe analysis and sync chapters to ChannelFlow Server.";
 
-    public string Category => "FinTV";
+    public string Category => "ChannelFlow";
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
@@ -63,7 +63,7 @@ public partial class BlackframeChapterTask : IScheduledTask
         state.LastError = null;
         Save(state);
 
-        var tag = string.IsNullOrWhiteSpace(config.CommercialLibraryTag) ? "fintv-commercial" : config.CommercialLibraryTag;
+        var tag = string.IsNullOrWhiteSpace(config.CommercialLibraryTag) ? "channelflow-commercial" : config.CommercialLibraryTag;
         var result = _libraryManager.GetItemsResult(new MediaBrowser.Controller.Entities.InternalItemsQuery
         {
             Recursive = true,

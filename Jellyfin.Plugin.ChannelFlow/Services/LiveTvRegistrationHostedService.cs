@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.FinTV.Services;
+namespace Jellyfin.Plugin.ChannelFlow.Services;
 
 public sealed class LiveTvRegistrationHostedService : BackgroundService
 {
@@ -57,7 +57,7 @@ public sealed class LiveTvRegistrationHostedService : BackgroundService
                     return;
                 }
 
-                _logger.LogWarning("FinTV Live TV auto-register: {Message}", result.Message);
+                _logger.LogWarning("ChannelFlow Live TV auto-register: {Message}", result.Message);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -65,7 +65,7 @@ public sealed class LiveTvRegistrationHostedService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not auto-register FinTV Live TV tuner");
+                _logger.LogWarning(ex, "Could not auto-register ChannelFlow Live TV tuner");
             }
         }
     }

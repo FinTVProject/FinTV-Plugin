@@ -1,17 +1,17 @@
 using System.Globalization;
-using Jellyfin.Plugin.FinTV.Configuration;
-using Jellyfin.Plugin.FinTV.Services;
+using Jellyfin.Plugin.ChannelFlow.Configuration;
+using Jellyfin.Plugin.ChannelFlow.Services;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 
-namespace Jellyfin.Plugin.FinTV;
+namespace Jellyfin.Plugin.ChannelFlow;
 
 public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasEmbeddedImage
 {
-    public const string PluginImageResourceName = "Jellyfin.Plugin.FinTV.logo.png";
+    public const string PluginImageResourceName = "Jellyfin.Plugin.ChannelFlow.logo.png";
 
     public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
         : base(applicationPaths, xmlSerializer)
@@ -23,7 +23,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasEmbedde
 
     public string ImageResourceName => PluginImageResourceName;
 
-    public override string Name => "FinTV";
+    public override string Name => "ChannelFlow-Jellyfin";
 
     public override Guid Id => Guid.Parse("f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b");
 

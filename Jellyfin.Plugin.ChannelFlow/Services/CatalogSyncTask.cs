@@ -7,7 +7,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.FinTV.Services;
+namespace Jellyfin.Plugin.ChannelFlow.Services;
 
 public sealed class CatalogSyncTask : IScheduledTask
 {
@@ -19,7 +19,7 @@ public sealed class CatalogSyncTask : IScheduledTask
 
     private readonly ILibraryManager _libraryManager;
     private readonly IChapterManager _chapters;
-    private readonly FinTvServerClient _client;
+    private readonly ChannelFlowServerClient _client;
     private readonly ILogger<CatalogSyncTask> _logger;
 
     public CatalogSyncTask(
@@ -30,17 +30,17 @@ public sealed class CatalogSyncTask : IScheduledTask
     {
         _libraryManager = libraryManager;
         _chapters = chapters;
-        _client = new FinTvServerClient(http);
+        _client = new ChannelFlowServerClient(http);
         _logger = logger;
     }
 
-    public string Name => "FinTV Catalog Sync";
+    public string Name => "ChannelFlow Catalog Sync";
 
-    public string Key => "FinTVCatalogSync";
+    public string Key => "ChannelFlowCatalogSync";
 
-    public string Description => "Pushes Jellyfin library names to FinTV Server, then the libraries selected there.";
+    public string Description => "Pushes Jellyfin library names to ChannelFlow Server, then the libraries selected there.";
 
-    public string Category => "FinTV";
+    public string Category => "ChannelFlow";
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
@@ -61,12 +61,12 @@ public sealed class CatalogSyncTask : IScheduledTask
         var libraryIds = ResolveLibraryIds(filter, libraries);
         if (libraryIds.Count == 0)
         {
-            _logger.LogWarning("FinTV catalog sync found no matching libraries. Select TV/movie/music libraries on FinTV Server.");
+            _logger.LogWarning("ChannelFlow catalog sync found no matching libraries. Select TV/movie/music libraries on ChannelFlow Server.");
             progress.Report(100);
             return;
         }
 
-        _logger.LogInformation("FinTV catalog sync using {Count} libraries selected by FinTV Server.", libraryIds.Count);
+        _logger.LogInformation("ChannelFlow catalog sync using {Count} libraries selected by ChannelFlow Server.", libraryIds.Count);
 
         try
         {
@@ -74,7 +74,7 @@ public sealed class CatalogSyncTask : IScheduledTask
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "FinTV catalog sync could not start missing-item bookkeeping; items will still be pushed.");
+            _logger.LogWarning(ex, "ChannelFlow catalog sync could not start missing-item bookkeeping; items will still be pushed.");
         }
 
         var items = new List<BaseItem>();
@@ -125,7 +125,7 @@ public sealed class CatalogSyncTask : IScheduledTask
                 cancellationToken);
         }
 
-        _logger.LogInformation("FinTV catalog sync posted {Count} items from {Libraries} libraries.", seen.Count, libraryIds.Count);
+        _logger.LogInformation("ChannelFlow catalog sync posted {Count} items from {Libraries} libraries.", seen.Count, libraryIds.Count);
         progress.Report(100);
         try
         {
@@ -133,7 +133,7 @@ public sealed class CatalogSyncTask : IScheduledTask
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "FinTV catalog sync finished pushing items but could not complete missing-item bookkeeping.");
+            _logger.LogWarning(ex, "ChannelFlow catalog sync finished pushing items but could not complete missing-item bookkeeping.");
         }
     }
 
@@ -152,8 +152,8 @@ public sealed class CatalogSyncTask : IScheduledTask
         }
 
         await PostLibraryListAsync(libraries, cancellationToken);
-        _logger.LogInformation("Sent {Count} Jellyfin libraries to FinTV Server.", libraries.Count);
-        return new LibraryPushResult(true, $"Sent {libraries.Count} libraries to FinTV Server.");
+        _logger.LogInformation("Sent {Count} Jellyfin libraries to ChannelFlow Server.", libraries.Count);
+        return new LibraryPushResult(true, $"Sent {libraries.Count} libraries to ChannelFlow Server.");
     }
 
     private List<BaseItem> CollectLibraryItems(Guid libraryId)
@@ -166,7 +166,7 @@ public sealed class CatalogSyncTask : IScheduledTask
             var physicalFolders = collection.GetPhysicalFolders().ToList();
             if (physicalFolders.Count == 0)
             {
-                _logger.LogWarning("FinTV catalog sync library {Name} has no physical folders.", collection.Name);
+                _logger.LogWarning("ChannelFlow catalog sync library {Name} has no physical folders.", collection.Name);
             }
 
             var parentIds = physicalFolders.Count > 0
@@ -180,7 +180,7 @@ public sealed class CatalogSyncTask : IScheduledTask
             }
 
             _logger.LogInformation(
-                "FinTV catalog sync library {Name} contributed {Count} items.",
+                "ChannelFlow catalog sync library {Name} contributed {Count} items.",
                 collection.Name,
                 items.Count);
             return items;
@@ -195,13 +195,13 @@ public sealed class CatalogSyncTask : IScheduledTask
             }
 
             _logger.LogInformation(
-                "FinTV catalog sync library {Name} contributed {Count} items.",
+                "ChannelFlow catalog sync library {Name} contributed {Count} items.",
                 libraryFolder.Name,
                 items.Count);
             return items;
         }
 
-        _logger.LogWarning("FinTV catalog sync skipped library {Id}; it is not a folder.", libraryId);
+        _logger.LogWarning("ChannelFlow catalog sync skipped library {Id}; it is not a folder.", libraryId);
         return items;
     }
 
@@ -475,7 +475,7 @@ public sealed class CatalogSyncTask : IScheduledTask
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not read FinTV library-sync settings; falling back to TV/movie/music libraries.");
+            _logger.LogWarning(ex, "Could not read ChannelFlow library-sync settings; falling back to TV/movie/music libraries.");
             return null;
         }
     }

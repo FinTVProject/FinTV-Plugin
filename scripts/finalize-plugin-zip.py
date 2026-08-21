@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_YAML = ROOT / "build.yaml"
-IMAGE_RESOURCE = "Jellyfin.Plugin.FinTV.logo.png"
+IMAGE_RESOURCE = "Jellyfin.Plugin.ChannelFlow.logo.png"
 
 
 def load_assemblies() -> list[str]:
@@ -52,7 +52,7 @@ def finalize(zip_path: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("zip_path", type=Path, help="Path to fintv_<version>.zip")
+    parser.add_argument("zip_path", type=Path, help="Path to channelflow-jellyfin_<version>.zip")
     args = parser.parse_args()
     zip_path = args.zip_path.expanduser().resolve()
     if not zip_path.is_file():

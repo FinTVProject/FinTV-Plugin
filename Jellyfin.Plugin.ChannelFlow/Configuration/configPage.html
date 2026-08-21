@@ -1,0 +1,132 @@
+<div id="ChannelFlowConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+    <div class="content-primary">
+        <div class="sectionTitleContainer">
+            <h2 class="sectionTitle">ChannelFlow-Jellyfin</h2>
+            <p>Connect this Jellyfin server to ChannelFlow Server. Channels, lineups, and streaming are managed in the ChannelFlow Web UI.</p>
+        </div>
+        <form id="channelflow-bridge-form">
+            <div class="inputContainer">
+                <label class="inputLabel" for="channelflow-server-url">ChannelFlow Server URL</label>
+                <input id="channelflow-server-url" type="text" is="emby-input" class="emby-input" />
+                <div class="fieldDescription">Must resolve from the Jellyfin container, e.g. <code>http://channelflow-server:8097</code> on the same Docker network, or a LAN IP like <code>http://192.168.1.2:8097</code>.</div>
+            </div>
+            <div class="inputContainer">
+                <label class="inputLabel" for="channelflow-api-key">API key</label>
+                <input id="channelflow-api-key" type="password" is="emby-input" class="emby-input" />
+            </div>
+            <div class="inputContainer">
+                <button is="emby-button" type="button" id="channelflow-test-connection" class="raised block">Test connection</button>
+                <p id="channelflow-test-result" class="fieldDescription" aria-live="polite"></p>
+            </div>
+            <label class="checkboxContainer">
+                <input id="channelflow-auto-livetv" type="checkbox" is="emby-checkbox" />
+                <span>Auto-register Live TV M3U and XMLTV</span>
+            </label>
+            <div class="fieldDescription">Adds a ChannelFlow M3U tuner and XMLTV guide under Dashboard → Live TV, using the Server URL above so Jellyfin can reach ChannelFlow.</div>
+            <label class="checkboxContainer">
+                <input id="channelflow-write-chapters" type="checkbox" is="emby-checkbox" />
+                <span>Write blackframe chapters onto Jellyfin items</span>
+            </label>
+            <div class="inputContainer">
+                <label class="inputLabel" for="channelflow-commercial-tag">Commercial library tag</label>
+                <input id="channelflow-commercial-tag" type="text" is="emby-input" class="emby-input" />
+            </div>
+            <button is="emby-button" type="submit" class="raised button-submit block">Save</button>
+            <button is="emby-button" type="button" id="channelflow-send-libraries" class="raised block">Send libraries</button>
+            <button is="emby-button" type="button" id="channelflow-sync-now" class="raised block">Sync catalog now</button>
+            <button is="emby-button" type="button" id="channelflow-blackframe-now" class="raised block">Run blackframe scan</button>
+            <p id="channelflow-action-result" class="fieldDescription" aria-live="polite"></p>
+        </form>
+        <p class="fieldDescription">Send libraries first so they appear in the ChannelFlow Web UI. Pick TV/movie/music libraries there, then use Sync catalog now. Catalog sync sends only those libraries, not the entire Jellyfin server.</p>
+    </div>
+    <script>
+        (function () {
+            const page = document.getElementById('ChannelFlowConfigPage');
+            page.addEventListener('viewshow', async function () {
+                const cfg = await ApiClient.getPluginConfiguration('f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b');
+                page.querySelector('#channelflow-server-url').value = cfg.ServerUrl || '';
+                page.querySelector('#channelflow-api-key').value = cfg.ApiKey || '';
+                page.querySelector('#channelflow-auto-livetv').checked = cfg.AutoRegisterLiveTv !== false;
+                page.querySelector('#channelflow-write-chapters').checked = cfg.WriteChaptersToJellyfin !== false;
+                page.querySelector('#channelflow-commercial-tag').value = cfg.CommercialLibraryTag || 'channelflow-commercial';
+            });
+            page.querySelector('#channelflow-bridge-form').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const cfg = await ApiClient.getPluginConfiguration('f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b');
+                cfg.ServerUrl = page.querySelector('#channelflow-server-url').value;
+                cfg.ApiKey = page.querySelector('#channelflow-api-key').value;
+                cfg.AutoRegisterLiveTv = page.querySelector('#channelflow-auto-livetv').checked;
+                cfg.WriteChaptersToJellyfin = page.querySelector('#channelflow-write-chapters').checked;
+                cfg.CommercialLibraryTag = page.querySelector('#channelflow-commercial-tag').value;
+                await ApiClient.updatePluginConfiguration('f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b', cfg);
+                if (cfg.AutoRegisterLiveTv) {
+                    const resultEl = page.querySelector('#channelflow-action-result');
+                    try {
+                        const result = await ApiClient.ajax({
+                            url: ApiClient.getUrl('ChannelFlow/api/bridge/register-livetv'),
+                            type: 'POST',
+                            data: '{}',
+                            contentType: 'application/json',
+                            dataType: 'json'
+                        });
+                        resultEl.textContent = result.message || result.Message || 'Live TV registered.';
+                    } catch (ex) {
+                        resultEl.textContent = 'Saved, but Live TV registration failed. Check the Jellyfin log.';
+                    }
+                }
+                Dashboard.processPluginConfigurationUpdateResult();
+            });
+            page.querySelector('#channelflow-test-connection').addEventListener('click', async function () {
+                const button = page.querySelector('#channelflow-test-connection');
+                const resultEl = page.querySelector('#channelflow-test-result');
+                button.disabled = true;
+                resultEl.textContent = 'Testing…';
+                try {
+                    const result = await ApiClient.ajax({
+                        url: ApiClient.getUrl('ChannelFlow/api/bridge/test-connection'),
+                        type: 'POST',
+                        data: JSON.stringify({
+                            serverUrl: page.querySelector('#channelflow-server-url').value,
+                            apiKey: page.querySelector('#channelflow-api-key').value
+                        }),
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    });
+                    resultEl.textContent = result.message || result.Message || (result.ok || result.Ok ? 'Connected to ChannelFlow Server.' : 'Connection failed.');
+                } catch (ex) {
+                    resultEl.textContent = 'Could not run the connection test.';
+                } finally {
+                    button.disabled = false;
+                }
+            });
+            async function runBridgeAction(button, path) {
+                const resultEl = page.querySelector('#channelflow-action-result');
+                button.disabled = true;
+                resultEl.textContent = 'Starting…';
+                try {
+                    const result = await ApiClient.ajax({
+                        url: ApiClient.getUrl(path),
+                        type: 'POST',
+                        data: '{}',
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    });
+                    resultEl.textContent = result.message || result.Message || 'Started.';
+                } catch (ex) {
+                    resultEl.textContent = (ex && (ex.message || ex.Message)) || 'Could not start this action.';
+                } finally {
+                    button.disabled = false;
+                }
+            }
+            page.querySelector('#channelflow-send-libraries').addEventListener('click', function () {
+                runBridgeAction(page.querySelector('#channelflow-send-libraries'), 'ChannelFlow/api/bridge/libraries');
+            });
+            page.querySelector('#channelflow-sync-now').addEventListener('click', function () {
+                runBridgeAction(page.querySelector('#channelflow-sync-now'), 'ChannelFlow/api/bridge/sync');
+            });
+            page.querySelector('#channelflow-blackframe-now').addEventListener('click', function () {
+                runBridgeAction(page.querySelector('#channelflow-blackframe-now'), 'ChannelFlow/api/bridge/blackframe');
+            });
+        })();
+    </script>
+</div>

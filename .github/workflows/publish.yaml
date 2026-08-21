@@ -51,7 +51,7 @@ jobs:
         run: python -m pip install --upgrade jprm
 
       - name: Restore NuGet packages
-        run: dotnet restore Jellyfin.Plugin.FinTV/Jellyfin.Plugin.FinTV.csproj
+        run: dotnet restore Jellyfin.Plugin.ChannelFlow/Jellyfin.Plugin.ChannelFlow.csproj
 
       - name: Build plugin zip
         id: build

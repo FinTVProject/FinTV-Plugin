@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jellyfin.Plugin.FinTV", "Jellyfin.Plugin.FinTV\Jellyfin.Plugin.FinTV.csproj", "{F4E8A2B1-3C5D-4E6F-9A8B-7C6D5E4F3A2B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jellyfin.Plugin.ChannelFlow", "Jellyfin.Plugin.ChannelFlow\Jellyfin.Plugin.ChannelFlow.csproj", "{F4E8A2B1-3C5D-4E6F-9A8B-7C6D5E4F3A2B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
