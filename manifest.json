@@ -6,7 +6,16 @@
         "overview": "Thin Jellyfin bridge for FinTV Server \u2014 catalog sync, Live TV registration, and blackframe chapters",
         "owner": "binarygeek119",
         "category": "LiveTV",
+        "imageUrl": "https://raw.githubusercontent.com/FinTVProject/FinTV-Plugin/master/logo.png",
         "versions": [
+            {
+                "version": "0.0.4.0",
+                "changelog": "- Test FinTV Server URL and API key from the plugin page\n- Queue catalog sync and blackframe scan as scheduled tasks\n- Upload catalog metadata in chunks so large libraries do not time out\n- Auto-register Live TV M3U and XMLTV\n- Keep blackframe commercial chapter detection in Jellyfin",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.4.0/fintv_0.0.4.0.zip",
+                "checksum": "447b9954885e5aef1644893ebe24354d",
+                "timestamp": "2026-08-21T16:03:32Z"
+            },
             {
                 "version": "0.0.3.0",
                 "changelog": "- Split FinTV into FinTV Server plus a thin Jellyfin plugin\n- Sync library metadata, file paths, and chapters to FinTV Server\n- Auto-register Live TV M3U and XMLTV\n- Keep blackframe commercial chapter detection in Jellyfin",
@@ -15,7 +24,6 @@
                 "checksum": "5a37548c6219ebed41667f46cc2014b1",
                 "timestamp": "2026-08-21T12:37:47Z"
             }
-        ],
-        "imageUrl": "https://raw.githubusercontent.com/FinTVProject/FinTV-Plugin/master/logo.png"
+        ]
     }
 ]
