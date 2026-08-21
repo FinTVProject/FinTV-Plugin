@@ -1,8 +1,8 @@
 # FinTV Plugin
 
-Thin [Jellyfin](https://jellyfin.org) 12 plugin that connects to [FinTV Server](https://github.com/binarygeek119/FinTV).
+Thin [Jellyfin](https://jellyfin.org) 12 plugin that connects to [FinTV Server](https://github.com/FinTVProject/FinTV).
 
-GUID: `f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b`
+This is the canonical plugin repository. GUID: `f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b`
 
 ## Configure
 
