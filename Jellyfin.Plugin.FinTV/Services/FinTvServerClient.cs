@@ -88,21 +88,41 @@ public sealed class FinTvServerClient
     public async Task PostJsonAsync(string path, object body, CancellationToken cancellationToken)
     {
         using var response = await SendAsync(HttpMethod.Post, path, body, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, path, cancellationToken);
     }
 
     public async Task PatchJsonAsync(string path, object body, CancellationToken cancellationToken)
     {
         using var response = await SendAsync(HttpMethod.Patch, path, body, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, path, cancellationToken);
     }
 
     public async Task<T?> GetJsonAsync<T>(string path, CancellationToken cancellationToken)
     {
         using var response = await SendAsync(HttpMethod.Get, path, null, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, path, cancellationToken);
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize<T>(json, JsonOptions);
+    }
+
+    private static async Task EnsureSuccessAsync(
+        HttpResponseMessage response,
+        string path,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (body.Length > 500)
+        {
+            body = body[..500];
+        }
+
+        throw new HttpRequestException(
+            $"FinTV Server {(int)response.StatusCode} {response.ReasonPhrase} for {path}: {body}");
     }
 
     private Task<HttpResponseMessage> SendAsync(

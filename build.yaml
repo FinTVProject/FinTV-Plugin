@@ -1,7 +1,7 @@
 ---
 name: "FinTV"
 guid: "f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b"
-version: "0.0.4.0"
+version: "0.0.5.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 owner: "binarygeek119"
@@ -18,8 +18,7 @@ artifacts:
   - "Jellyfin.Plugin.FinTV.dll"
   - "CliWrap.dll"
 changelog: |-
-  - Test FinTV Server URL and API key from the plugin page
-  - Queue catalog sync and blackframe scan as scheduled tasks
-  - Upload catalog metadata in chunks so large libraries do not time out
-  - Auto-register Live TV M3U and XMLTV
-  - Keep blackframe commercial chapter detection in Jellyfin
+  - Register the FinTV M3U tuner and XMLTV guide in Dashboard → Live TV
+  - Send Jellyfin libraries to FinTV Server for the Web UI picker
+  - Sync only the libraries selected on FinTV Server
+  - Stop catalog sync from deleting items that channels still reference

@@ -22,6 +22,7 @@
                 <input id="fintv-auto-livetv" type="checkbox" is="emby-checkbox" />
                 <span>Auto-register Live TV M3U and XMLTV</span>
             </label>
+            <div class="fieldDescription">Adds a FinTV M3U tuner and XMLTV guide under Dashboard → Live TV, using the Server URL above so Jellyfin can reach FinTV.</div>
             <label class="checkboxContainer">
                 <input id="fintv-write-chapters" type="checkbox" is="emby-checkbox" />
                 <span>Write blackframe chapters onto Jellyfin items</span>
@@ -31,10 +32,12 @@
                 <input id="fintv-commercial-tag" type="text" is="emby-input" class="emby-input" />
             </div>
             <button is="emby-button" type="submit" class="raised button-submit block">Save</button>
+            <button is="emby-button" type="button" id="fintv-send-libraries" class="raised block">Send libraries</button>
             <button is="emby-button" type="button" id="fintv-sync-now" class="raised block">Sync catalog now</button>
             <button is="emby-button" type="button" id="fintv-blackframe-now" class="raised block">Run blackframe scan</button>
+            <p id="fintv-action-result" class="fieldDescription" aria-live="polite"></p>
         </form>
-        <p class="fieldDescription">Open the FinTV Server Web UI (port 8097) to manage channels. Catalog metadata syncs on a schedule or from Dashboard → Scheduled Tasks → FinTV Catalog Sync.</p>
+        <p class="fieldDescription">Send libraries first so they appear in the FinTV Web UI. Pick TV/movie/music libraries there, then use Sync catalog now. Catalog sync sends only those libraries, not the entire Jellyfin server.</p>
     </div>
     <script>
         (function () {
@@ -56,6 +59,21 @@
                 cfg.WriteChaptersToJellyfin = page.querySelector('#fintv-write-chapters').checked;
                 cfg.CommercialLibraryTag = page.querySelector('#fintv-commercial-tag').value;
                 await ApiClient.updatePluginConfiguration('f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b', cfg);
+                if (cfg.AutoRegisterLiveTv) {
+                    const resultEl = page.querySelector('#fintv-action-result');
+                    try {
+                        const result = await ApiClient.ajax({
+                            url: ApiClient.getUrl('FinTV/api/bridge/register-livetv'),
+                            type: 'POST',
+                            data: '{}',
+                            contentType: 'application/json',
+                            dataType: 'json'
+                        });
+                        resultEl.textContent = result.message || result.Message || 'Live TV registered.';
+                    } catch (ex) {
+                        resultEl.textContent = 'Saved, but Live TV registration failed. Check the Jellyfin log.';
+                    }
+                }
                 Dashboard.processPluginConfigurationUpdateResult();
             });
             page.querySelector('#fintv-test-connection').addEventListener('click', async function () {
@@ -81,21 +99,33 @@
                     button.disabled = false;
                 }
             });
-            page.querySelector('#fintv-sync-now').addEventListener('click', async function () {
+            async function runBridgeAction(button, path) {
+                const resultEl = page.querySelector('#fintv-action-result');
+                button.disabled = true;
+                resultEl.textContent = 'Starting…';
                 try {
-                    await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/sync'), type: 'POST' });
-                    Dashboard.alert('Catalog sync started. Watch Dashboard → Scheduled Tasks.');
+                    const result = await ApiClient.ajax({
+                        url: ApiClient.getUrl(path),
+                        type: 'POST',
+                        data: '{}',
+                        contentType: 'application/json',
+                        dataType: 'json'
+                    });
+                    resultEl.textContent = result.message || result.Message || 'Started.';
                 } catch (ex) {
-                    Dashboard.alert('Could not start catalog sync.');
+                    resultEl.textContent = (ex && (ex.message || ex.Message)) || 'Could not start this action.';
+                } finally {
+                    button.disabled = false;
                 }
+            }
+            page.querySelector('#fintv-send-libraries').addEventListener('click', function () {
+                runBridgeAction(page.querySelector('#fintv-send-libraries'), 'FinTV/api/bridge/libraries');
             });
-            page.querySelector('#fintv-blackframe-now').addEventListener('click', async function () {
-                try {
-                    await ApiClient.ajax({ url: ApiClient.getUrl('FinTV/api/bridge/blackframe'), type: 'POST' });
-                    Dashboard.alert('Blackframe scan started. Watch Dashboard → Scheduled Tasks.');
-                } catch (ex) {
-                    Dashboard.alert('Could not start blackframe scan.');
-                }
+            page.querySelector('#fintv-sync-now').addEventListener('click', function () {
+                runBridgeAction(page.querySelector('#fintv-sync-now'), 'FinTV/api/bridge/sync');
+            });
+            page.querySelector('#fintv-blackframe-now').addEventListener('click', function () {
+                runBridgeAction(page.querySelector('#fintv-blackframe-now'), 'FinTV/api/bridge/blackframe');
             });
         })();
     </script>

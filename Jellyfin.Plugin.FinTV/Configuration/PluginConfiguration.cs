@@ -10,6 +10,10 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool AutoRegisterLiveTv { get; set; } = true;
 
+    public string? LiveTvTunerId { get; set; }
+
+    public string? LiveTvListingsId { get; set; }
+
     public bool WriteChaptersToJellyfin { get; set; } = true;
 
     public string? CommercialLibraryTag { get; set; } = "fintv-commercial";

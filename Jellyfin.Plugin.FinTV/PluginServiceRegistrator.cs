@@ -17,6 +17,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<IScheduledTask>(sp => sp.GetRequiredService<CatalogSyncTask>());
         serviceCollection.AddSingleton<BlackframeChapterTask>();
         serviceCollection.AddSingleton<IScheduledTask>(sp => sp.GetRequiredService<BlackframeChapterTask>());
+        serviceCollection.AddSingleton<LiveTvRegistrar>();
         serviceCollection.AddHostedService<LiveTvRegistrationHostedService>();
     }
 }

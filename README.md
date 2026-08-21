@@ -20,12 +20,13 @@ Dashboard → Plugins → FinTV:
 - FinTV Server URL (example `http://FinTV-Server:8097`)
 - API key (same as `FINTV_API_KEY` on the server)
 - **Test connection** — checks that Jellyfin can reach FinTV Server with that URL and key
-- Auto-register Live TV
+- Auto-register Live TV — adds the FinTV M3U tuner and XMLTV guide
+- **Send libraries** — publishes Jellyfin TV/movie/music libraries to FinTV Server
 - Write blackframe chapters onto Jellyfin items
 
 Scheduled tasks:
 
-- **FinTV Catalog Sync** — metadata, paths, chapters
+- **FinTV Catalog Sync** — metadata, paths, and chapters for the libraries selected on FinTV Server
 - **FinTV Commercial Blackframe Detection**
 
 Manage channels in the FinTV Server Web UI, not this page.

@@ -1,6 +1,6 @@
 using System.Globalization;
-using System.Reflection;
 using Jellyfin.Plugin.FinTV.Configuration;
+using Jellyfin.Plugin.FinTV.Services;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller.Plugins;
@@ -26,6 +26,16 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasEmbedde
     public override string Name => "FinTV";
 
     public override Guid Id => Guid.Parse("f4e8a2b1-3c5d-4e6f-9a8b-7c6d5e4f3a2b");
+
+    public override void UpdateConfiguration(BasePluginConfiguration configuration)
+    {
+        base.UpdateConfiguration(configuration);
+        var registrar = LiveTvRegistrar.Instance;
+        if (registrar is not null)
+        {
+            _ = registrar.RegisterAsync(CancellationToken.None);
+        }
+    }
 
     public IEnumerable<PluginPageInfo> GetPages()
     {
