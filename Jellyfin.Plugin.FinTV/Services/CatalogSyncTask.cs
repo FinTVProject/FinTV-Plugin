@@ -13,9 +13,9 @@ public sealed class CatalogSyncTask : IScheduledTask
 {
     private static readonly BaseItemKind[] ItemKinds =
     [
-        BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Episode,
+        BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Season, BaseItemKind.Episode,
         BaseItemKind.MusicVideo, BaseItemKind.Audio, BaseItemKind.Playlist,
-        BaseItemKind.CollectionFolder
+        BaseItemKind.Video, BaseItemKind.CollectionFolder
     ];
 
     private readonly ILibraryManager _libraryManager;
@@ -178,43 +178,113 @@ public sealed class CatalogSyncTask : IScheduledTask
         Guid? parentId = item.ParentId == Guid.Empty ? null : item.ParentId;
         Guid? seriesId = null;
         string? seriesName = null;
+        Guid? seasonId = null;
+        string? seasonName = null;
         int? indexNumber = item.IndexNumber;
         int? parentIndexNumber = item.ParentIndexNumber;
         if (item is MediaBrowser.Controller.Entities.TV.Episode episode)
         {
             seriesId = episode.SeriesId == Guid.Empty ? null : episode.SeriesId;
             seriesName = episode.SeriesName;
+            seasonId = episode.SeasonId == Guid.Empty ? null : episode.SeasonId;
+            seasonName = episode.SeasonName;
+        }
+        else if (item is MediaBrowser.Controller.Entities.TV.Season season)
+        {
+            seriesId = season.SeriesId == Guid.Empty ? null : season.SeriesId;
+            seriesName = season.SeriesName;
+            seasonId = season.Id;
+            seasonName = season.Name;
         }
 
         var library = ResolveItemLibrary(item, libraries);
         var collectionType = library?.CollectionType
             ?? (item is CollectionFolder folder ? folder.CollectionType?.ToString() : null);
 
+        var people = _libraryManager.GetPeople(item)
+            .Select(person => new
+            {
+                name = person.Name,
+                role = person.Role,
+                type = person.Type.ToString()
+            })
+            .Take(25)
+            .ToList();
+        var stars = people
+            .Where(person =>
+                string.Equals(person.type, "Actor", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(person.type, "GuestStar", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(person.type, "Guest Star", StringComparison.OrdinalIgnoreCase))
+            .Select(person => person.name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(15)
+            .ToList();
+
+        string[] artists = [];
+        string[] albumArtists = [];
+        if (item is MediaBrowser.Controller.Entities.Audio.Audio audio)
+        {
+            artists = audio.Artists?.ToArray() ?? [];
+            albumArtists = audio.AlbumArtists?.ToArray() ?? [];
+        }
+        else if (item is MusicVideo musicVideo)
+        {
+            artists = musicVideo.Artists?.ToArray() ?? [];
+        }
+
+        var collections = _libraryManager.GetCollectionFolders(item)
+            .Select(collection => collection.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var providerIds = item.ProviderIds?
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase)
+            ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         return new
         {
             id = item.Id,
+            jellyfinId = item.Id,
             name = item.Name,
             sortName = item.SortName,
             overview = item.Overview,
+            plot = item.Overview,
             kind = MapKind(item),
             path = item.Path,
+            jellyfinPath = item.Path,
             parentId,
             seriesId,
             seriesName,
+            seasonId,
+            seasonName,
             productionYear = item.ProductionYear,
             premiereDate = item.PremiereDate,
             officialRating = item.OfficialRating,
+            communityRating = item.CommunityRating,
+            criticRating = item.CriticRating,
+            customRating = item.CustomRating,
             runtimeTicks = item.RunTimeTicks,
+            runtime = FormatRuntime(item.RunTimeTicks),
             indexNumber,
             parentIndexNumber,
             libraryId = library?.Id ?? item.GetTopParent()?.Id,
             libraryName = library?.Name ?? item.GetTopParent()?.Name,
             collectionType,
+            mediaType = item.MediaType.ToString(),
+            album = item.Album,
             primaryImagePath = item.HasImage(ImageType.Primary) ? item.GetImagePath(ImageType.Primary) : null,
             genres = item.Genres ?? Array.Empty<string>(),
             tags = item.Tags ?? Array.Empty<string>(),
             studios = item.Studios ?? Array.Empty<string>(),
-            collectionNames = Array.Empty<string>(),
+            collectionNames = collections,
+            artists,
+            albumArtists,
+            people,
+            stars,
+            providerIds,
             chapters
         };
     }
@@ -282,7 +352,29 @@ public sealed class CatalogSyncTask : IScheduledTask
         if (item is MediaBrowser.Controller.Entities.Audio.Audio) return 4;
         if (item.GetBaseItemKind() == BaseItemKind.Playlist) return 5;
         if (item is CollectionFolder) return 6;
+        if (item is MediaBrowser.Controller.Entities.TV.Season) return 8;
         return 7;
+    }
+
+    private static string? FormatRuntime(long? ticks)
+    {
+        if (ticks is not > 0)
+        {
+            return null;
+        }
+
+        var time = TimeSpan.FromTicks(ticks.Value);
+        if (time.TotalHours >= 1)
+        {
+            return $"{(int)time.TotalHours}h {time.Minutes:00}m";
+        }
+
+        if (time.TotalMinutes >= 1)
+        {
+            return $"{(int)time.TotalMinutes}m {time.Seconds:00}s";
+        }
+
+        return $"{time.Seconds}s";
     }
 
     private async Task<LibrarySyncFilter?> GetLibraryFilterAsync(CancellationToken cancellationToken)
@@ -320,6 +412,7 @@ public sealed class CatalogSyncTask : IScheduledTask
         ids.UnionWith(Pick(filter?.MovieLibraryIds, folders, CollectionType.movies));
         ids.UnionWith(Pick(filter?.MusicLibraryIds, folders, CollectionType.music));
         ids.UnionWith(Pick(filter?.MusicVideoLibraryIds, folders, CollectionType.musicvideos));
+        ids.UnionWith(Pick(filter?.HomeVideoLibraryIds, folders, CollectionType.homevideos));
         return ids;
     }
 
@@ -347,7 +440,8 @@ public sealed class CatalogSyncTask : IScheduledTask
         return MatchesType(folder, CollectionType.tvshows)
             || MatchesType(folder, CollectionType.movies)
             || MatchesType(folder, CollectionType.music)
-            || MatchesType(folder, CollectionType.musicvideos);
+            || MatchesType(folder, CollectionType.musicvideos)
+            || MatchesType(folder, CollectionType.homevideos);
     }
 
     private static bool MatchesType(VirtualFolderInfo folder, CollectionType type)
@@ -373,6 +467,8 @@ public sealed class CatalogSyncTask : IScheduledTask
         public List<Guid> MusicLibraryIds { get; set; } = [];
 
         public List<Guid> MusicVideoLibraryIds { get; set; } = [];
+
+        public List<Guid> HomeVideoLibraryIds { get; set; } = [];
     }
 }
 
