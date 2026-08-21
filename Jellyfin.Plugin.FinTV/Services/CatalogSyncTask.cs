@@ -4,7 +4,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -12,11 +11,10 @@ namespace Jellyfin.Plugin.FinTV.Services;
 
 public sealed class CatalogSyncTask : IScheduledTask
 {
-    private static readonly BaseItemKind[] ItemKinds =
+    private static readonly BaseItemKind[] ChildItemKinds =
     [
         BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Season, BaseItemKind.Episode,
-        BaseItemKind.MusicVideo, BaseItemKind.Audio, BaseItemKind.Playlist,
-        BaseItemKind.Video, BaseItemKind.CollectionFolder
+        BaseItemKind.MusicVideo, BaseItemKind.Audio, BaseItemKind.Playlist, BaseItemKind.Video
     ];
 
     private readonly ILibraryManager _libraryManager;
@@ -83,20 +81,8 @@ public sealed class CatalogSyncTask : IScheduledTask
         foreach (var libraryId in libraryIds)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var folder = _libraryManager.GetItemById(libraryId);
-            if (folder is CollectionFolder)
-            {
-                items.Add(folder);
-            }
-
-            var children = _libraryManager.GetItemsResult(new InternalItemsQuery
-            {
-                Recursive = true,
-                IsVirtualItem = false,
-                IncludeItemTypes = ItemKinds,
-                TopParentIds = [libraryId]
-            });
-            items.AddRange(children.Items);
+            var fromLibrary = CollectLibraryItems(libraryId);
+            items.AddRange(fromLibrary);
         }
 
         const int batchSize = 100;
@@ -168,6 +154,81 @@ public sealed class CatalogSyncTask : IScheduledTask
         await PostLibraryListAsync(libraries, cancellationToken);
         _logger.LogInformation("Sent {Count} Jellyfin libraries to FinTV Server.", libraries.Count);
         return new LibraryPushResult(true, $"Sent {libraries.Count} libraries to FinTV Server.");
+    }
+
+    private List<BaseItem> CollectLibraryItems(Guid libraryId)
+    {
+        var items = new List<BaseItem>();
+        var folder = _libraryManager.GetItemById(libraryId);
+        if (folder is CollectionFolder collection)
+        {
+            items.Add(collection);
+            var physicalFolders = collection.GetPhysicalFolders().ToList();
+            if (physicalFolders.Count == 0)
+            {
+                _logger.LogWarning("FinTV catalog sync library {Name} has no physical folders.", collection.Name);
+            }
+
+            var parentIds = physicalFolders.Count > 0
+                ? physicalFolders.Select(physical => physical.Id).ToArray()
+                : [collection.Id];
+            items.AddRange(QueryLibraryChildren(parentIds));
+
+            if (items.Count <= 1)
+            {
+                items.AddRange(collection.GetRecursiveChildren(ShouldSyncChild));
+            }
+
+            _logger.LogInformation(
+                "FinTV catalog sync library {Name} contributed {Count} items.",
+                collection.Name,
+                items.Count);
+            return items;
+        }
+
+        if (folder is Folder libraryFolder)
+        {
+            items.AddRange(QueryLibraryChildren([libraryFolder.Id]));
+            if (items.Count == 0)
+            {
+                items.AddRange(libraryFolder.GetRecursiveChildren(ShouldSyncChild));
+            }
+
+            _logger.LogInformation(
+                "FinTV catalog sync library {Name} contributed {Count} items.",
+                libraryFolder.Name,
+                items.Count);
+            return items;
+        }
+
+        _logger.LogWarning("FinTV catalog sync skipped library {Id}; it is not a folder.", libraryId);
+        return items;
+    }
+
+    private IReadOnlyList<BaseItem> QueryLibraryChildren(Guid[] parentIds)
+    {
+        return _libraryManager.GetItemList(new InternalItemsQuery
+        {
+            Recursive = true,
+            IsVirtualItem = false,
+            IncludeItemTypes = ChildItemKinds,
+            AncestorIds = parentIds,
+            GroupByPresentationUniqueKey = false
+        });
+    }
+
+    private static bool ShouldSyncChild(BaseItem item)
+    {
+        var kind = item.GetBaseItemKind();
+        foreach (var wanted in ChildItemKinds)
+        {
+            if (wanted == kind)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Task PostLibraryListAsync(
