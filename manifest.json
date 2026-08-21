@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/FinTVProject/FinTV-Plugin/master/logo.png",
         "versions": [
             {
+                "version": "0.0.7.0",
+                "changelog": "- Keep Test connection / Live TV / catalog buttons working if plugin DI fails to register\n- Stop queuing catalog sync twice, and wait until Jellyfin has finished starting before Live TV save\n- Sync full catalog metadata: runtime, chapters, rating, plot, stars, Jellyfin path, and IDs",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/FinTVProject/FinTV-Plugin/releases/download/v0.0.7.0/fintv_0.0.7.0.zip",
+                "checksum": "9e2fd2b300b9b3be8e1e44daeee94cc3",
+                "timestamp": "2026-08-21T18:17:26Z"
+            },
+            {
                 "version": "0.0.6.0",
                 "changelog": "- Sync full catalog metadata: runtime, chapters, rating, plot, stars, Jellyfin path, and IDs\n- Include TV seasons, home-video/news libraries, and album/artist fields\n- Send Jellyfin library names and types to FinTV Server for the library picker",
                 "targetAbi": "12.0.0.0",
