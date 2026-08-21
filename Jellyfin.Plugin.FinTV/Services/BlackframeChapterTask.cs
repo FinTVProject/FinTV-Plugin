@@ -24,14 +24,18 @@ public partial class BlackframeChapterTask : IScheduledTask
         ILibraryManager libraryManager,
         IChapterManager chapterManager,
         IMediaEncoder mediaEncoder,
-        CatalogSyncTask catalogSync,
-        ILogger<BlackframeChapterTask> logger)
+        IHttpClientFactory http,
+        ILoggerFactory loggerFactory)
     {
         _libraryManager = libraryManager;
         _chapterManager = chapterManager;
         _mediaEncoder = mediaEncoder;
-        _catalogSync = catalogSync;
-        _logger = logger;
+        _logger = loggerFactory.CreateLogger<BlackframeChapterTask>();
+        _catalogSync = new CatalogSyncTask(
+            libraryManager,
+            chapterManager,
+            http,
+            loggerFactory.CreateLogger<CatalogSyncTask>());
     }
 
     public string Name => "FinTV Commercial Blackframe Detection";

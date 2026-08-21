@@ -15,18 +15,23 @@ public sealed class LiveTvRegistrationHostedService : BackgroundService
     ];
 
     private readonly LiveTvRegistrar _registrar;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<LiveTvRegistrationHostedService> _logger;
 
     public LiveTvRegistrationHostedService(
         LiveTvRegistrar registrar,
+        IHostApplicationLifetime lifetime,
         ILogger<LiveTvRegistrationHostedService> logger)
     {
         _registrar = registrar;
+        _lifetime = lifetime;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await WaitForApplicationStarted(stoppingToken).ConfigureAwait(false);
+
         foreach (var delay in RetryDelays)
         {
             try
@@ -63,5 +68,18 @@ public sealed class LiveTvRegistrationHostedService : BackgroundService
                 _logger.LogWarning(ex, "Could not auto-register FinTV Live TV tuner");
             }
         }
+    }
+
+    private async Task WaitForApplicationStarted(CancellationToken stoppingToken)
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var startedReg = _lifetime.ApplicationStarted.Register(() => started.TrySetResult());
+        if (_lifetime.ApplicationStarted.IsCancellationRequested)
+        {
+            return;
+        }
+
+        using var stoppingReg = stoppingToken.Register(() => started.TrySetCanceled(stoppingToken));
+        await started.Task.ConfigureAwait(false);
     }
 }

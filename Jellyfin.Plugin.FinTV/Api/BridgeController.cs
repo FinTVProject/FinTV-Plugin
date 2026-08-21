@@ -1,7 +1,12 @@
 using MediaBrowser.Common.Api;
+using MediaBrowser.Common.Configuration;
+using MediaBrowser.Controller.Chapters;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Model.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.FinTV.Api;
 
@@ -17,14 +22,27 @@ public class BridgeController : ControllerBase
 
     public BridgeController(
         ITaskManager taskManager,
-        Services.FinTvServerClient client,
-        Services.LiveTvRegistrar liveTv,
-        Services.CatalogSyncTask catalogSync)
+        IHttpClientFactory http,
+        ILibraryManager libraryManager,
+        IChapterManager chapters,
+        ITunerHostManager tunerHosts,
+        IListingsManager listings,
+        IConfigurationManager config,
+        ILoggerFactory loggerFactory)
     {
         _taskManager = taskManager;
-        _client = client;
-        _liveTv = liveTv;
-        _catalogSync = catalogSync;
+        _client = new Services.FinTvServerClient(http);
+        _liveTv = new Services.LiveTvRegistrar(
+            _client,
+            tunerHosts,
+            listings,
+            config,
+            loggerFactory.CreateLogger<Services.LiveTvRegistrar>());
+        _catalogSync = new Services.CatalogSyncTask(
+            libraryManager,
+            chapters,
+            http,
+            loggerFactory.CreateLogger<Services.CatalogSyncTask>());
     }
 
     [HttpPost("test-connection")]

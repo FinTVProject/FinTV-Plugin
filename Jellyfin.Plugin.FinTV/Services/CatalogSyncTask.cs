@@ -27,12 +27,12 @@ public sealed class CatalogSyncTask : IScheduledTask
     public CatalogSyncTask(
         ILibraryManager libraryManager,
         IChapterManager chapters,
-        FinTvServerClient client,
+        IHttpClientFactory http,
         ILogger<CatalogSyncTask> logger)
     {
         _libraryManager = libraryManager;
         _chapters = chapters;
-        _client = client;
+        _client = new FinTvServerClient(http);
         _logger = logger;
     }
 
@@ -139,6 +139,7 @@ public sealed class CatalogSyncTask : IScheduledTask
                 cancellationToken);
         }
 
+        _logger.LogInformation("FinTV catalog sync posted {Count} items from {Libraries} libraries.", seen.Count, libraryIds.Count);
         progress.Report(100);
         try
         {
